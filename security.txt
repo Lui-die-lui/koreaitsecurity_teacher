@@ -1,0 +1,78 @@
+Spring Security
+- 인증 (Authentication), 인가(Authorize) 부여 및 보호 기능을
+제공하는 프레임워크
+인증 : 해당 사용자가 본인이 맞는지를 확인하는 절차
+인가 : 인증된 사용자가 요청된 자원에 접근 가능한가를 결정하는 절차
+
+요청 -> Tomcat(서블릿 컨테이너) 수신 -> 서블릿 필터 체인 (HTTP요청과 응답을 가로채서 전/후처리를 할 수 있는 구조
+
+서블릿 필터 체인
+-FilterChainProxy (Spring Security 필터 관리자)
+	- SecurityFilterChain (Spring Security의 여러 필터)
+		-SecurityContextPersistenceFilter
+		-UsernamePasswordAuthenticationFilter
+		-AuthorizationFilter
+		-...
+
+DispatcherServlet (Spring MVC 시작) =>요청에 따라 각각의 알맞는 컨트롤러로 분배
+ -> controller
+
+1. Http Request 수신
+-> 사용자가 로그인 정보와 함께 인증 요청을 한다.
+2. 유저 자격을 기반으로 인증 토큰 생성
+-> AuthenticationFilter가 요청을 가로채고, 가로챈 정보를 통해 UsernamePasswordAuthenticationToken의 인증용 객체를 생성한다.
+3. Filter를 통해 AuthenticationToken을 AuthenticationManager로 위임
+-> AuthenticationManager의 구현체인 ProviderManager에게 생성한 UsernamePasswordToken 객체를 전달한다.
+4.AuthenticationProvider의 목록으로 인증을 시도
+-> AuthenticationManager는 등록된 AuthenticationProvider들을 조회하며 인증을 요구한다.
+5. UserDetailService
+-> 실제 데이터베이스에서 사용자 인증정보를 가져오는 UserDetailService에 사용자 정보를 넘겨준다
+6. UserDetails를 이용해 User객체에 대한 정보를 탐색
+-> 넘겨받은 사용자 정보를 통해 데이터베이스에서 찾아낸 사용자 정보인 UserDetails 객체를 만든다.
+7. User 객체의 정보들을 UserDetails가 UserDetailsService(LoginService)로 전달
+-> AuthenticationProvider들은 UserDetails를 넘겨받고 사용자 정보를 비교한다.
+8. 인증 객체 or AuthenticationException
+-> 인증이 완료가 되면 권한 등의 사용자 정보를 담은 Authentication 객체를 반환한다
+9. 이러면 인증 끝
+10. SecurityContext에 인증 객체를 설정
+최종적으로는 SecurityContextHolder는 세션 영역에 있는 SecurityContext에 Authentication 객체를 저장, 사용자 정보를 저장한다는 것은 스피링 시큐리티가 전통적인 세션 - 쿠키 기반의 인증 방식을 사용한다.
+
+세션 - 서버가 사용자 별로 유지하는 상태(state) 정보 저장소
+사용자가 로그인하면, 서버는 메모리(또는 DB 등)에 고유한 세션 데이터를 생성
+그 세션의 ID를 클라이언트에 쿠키 형태로 전달
+이후 요청마다 쿠키에 포함된 세션 ID를 통해 서버가 세션에 저장된 사용자 정보를 조회
+
+쿠키 - 클라이언트가 로컬에 저장하는 작은 데이터 조각
+서버 HTTP응답 시 set-Cookie 헤더로 값을 내려보내면
+-> 브라우저에 저장 -> 이후 모든 요청에 자동으로 Cookie 헤더에 담아 보낸다.
+
+JWT(JJWT)
+jjwt-api
+JWT 생성/파싱/검증에 필요한 인터페이스와 핵심 로직이 포함된 API 모듈
+JwtBuilder, JwtParser, Claims 등의 핵심 클래스가 이 안에 있다
+하지만 단독으로는 작동하지 않음 => 구현체가 필요하다
+
+jjwt-impl
+jjwt-api의 구현체 라이브러리
+실제로 토큰을 만들고 파싱하는 구현 로직이 여기 있다
+컴파일 시에는 API만 있으면 되고 실행 시에는 구현체가 필요하기 때문
+
+jjwt-jackson
+JWT의 payload(Claims 부분)을 JSON으로 직렬화/역직렬화할 때 Jackson 사용을 지원하는
+모듈
+기본적으로 jjwt는 JSON 처리를 위한 구현체가 필요함
+
+JWT
+<Header>.<Payload>.<Signature>
+header => 서명 알고리즘, 토큰 타입
+payload => Claim이라고 부르며, 실제 사용자 정보가 담김
+            (Base64Url로 인코딩되어 있지만 암호화되지 않음 => 누구나 읽을 수 있다)
+            ex) 유저 ID, 권한, 만료일시 등
+signature => 위변조 방지 역할
+             서버에서 발급 시 사용한 secretKey로 서명
+
+HMAC-SHA
+HS512 = HMAC + SHA-512
+//HS512는 secret key로 512bit (64byte)
+
+
