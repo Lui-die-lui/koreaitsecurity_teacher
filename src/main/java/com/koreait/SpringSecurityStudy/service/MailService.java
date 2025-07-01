@@ -50,7 +50,7 @@ public class MailService {
 
         // 로그인 할때 인증 email 만들어줌
 
-        String token = jwtUtil.generateAccessToken(user.getUserId().toString()); // generateAccessToken 에서 string 으로 id를 받음
+        String token = jwtUtil.generateMailVerifyToken(user.getUserId().toString()); // generateAccessToken 에서 string 으로 id를 받음
 
         SimpleMailMessage message = new SimpleMailMessage();
         message.setTo(user.getEmail()); // 수신자 이메일
